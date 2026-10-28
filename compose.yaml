@@ -19,7 +19,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://riskengine:${POSTGRES_PASSWORD}@db:5432/riskengine
       RISKENGINE_ADMIN_EMAIL: ${RISKENGINE_ADMIN_EMAIL:?Configura scripts/configure_admin.py primero}
-      RISKENGINE_ADMIN_PASSWORD_HASH: ${RISKENGINE_ADMIN_PASSWORD_HASH:?Configura scripts/configure_admin.py primero}
+      RISKENGINE_ADMIN_PASSWORD: ${RISKENGINE_ADMIN_PASSWORD:?Configura scripts/configure_admin.py primero}
     depends_on:
       db:
         condition: service_healthy

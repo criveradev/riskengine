@@ -12,7 +12,7 @@ services:
         sync: false
       - key: RISKENGINE_ADMIN_EMAIL
         value: admin@riskengine.com
-      - key: RISKENGINE_ADMIN_PASSWORD_HASH
+      - key: RISKENGINE_ADMIN_PASSWORD
         sync: false
       - key: RISKENGINE_ALLOWED_ORIGINS
         value: https://riskengine.criveradev.com,https://riskengine-ochre.vercel.app,https://riskengine-s0dr.onrender.com

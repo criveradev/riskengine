@@ -54,7 +54,7 @@ alembic upgrade head
 uvicorn riskengine.main:app --host 127.0.0.1 --port 8000
 ```
 
-Abre **http://127.0.0.1:8000**. Entra con el correo y la contraseña configurados mediante `scripts/configure_admin.py`. `.env` guarda el correo y un hash scrypt con sal, nunca la contraseña. La sesión usa una cookie HttpOnly, caduca a las 8 horas y se revoca con «Salir». No publiques `.env`.
+Abre **http://127.0.0.1:8000**. Entra con el correo y la contraseña configurados mediante `scripts/configure_admin.py`. `.env` guarda las credenciales de configuración y debe permanecer privado; la base almacena un hash scrypt con sal, nunca la contraseña. La sesión usa una cookie HttpOnly, caduca a las 8 horas y se revoca con «Salir». No publiques `.env`.
 
 Para desarrollar la interfaz sin recompilar, ejecuta `npm run dev` desde `frontend` en otra terminal, manteniendo el backend en el puerto 8000. Abre http://127.0.0.1:5173. Vite reenvía `/api` al backend; no se habilita CORS abierto.
 
@@ -109,7 +109,7 @@ Las evidencias deben tener fecha admisible según la antigüedad indicada por el
 | Variable | Uso |
 |---|---|
 | `RISKENGINE_ADMIN_EMAIL` | Única cuenta autorizada. |
-| `RISKENGINE_ADMIN_PASSWORD_HASH` | Hash scrypt generado con `scripts/configure_admin.py`. Sin este valor, el inicio de sesión queda cerrado. |
+| `RISKENGINE_ADMIN_PASSWORD` | Contraseña de la cuenta personal, guardada solo en el entorno privado. La aplicación genera y conserva un hash scrypt con sal en la base. Sin credenciales, el acceso queda cerrado. |
 | `RISKENGINE_ALLOWED_ORIGINS` | Orígenes exactos permitidos para operaciones de escritura, separados por comas. En local se permiten los puertos 5173, 8000 y 8001 de localhost y 127.0.0.1. |
 | `RISKENGINE_SECURE_COOKIE` | `true` obliga a usar cookie Secure y prefijo `__Host-`. En Render se activa automáticamente. |
 | `DATABASE_URL` | Local: `sqlite:///./riskengine.db`, relativa al directorio de ejecución del backend. PostgreSQL: URL con driver `postgresql+psycopg`. |
@@ -194,7 +194,7 @@ Compose publica la aplicación únicamente en `127.0.0.1:8000`, no publica Postg
 
 ## Límites y siguiente incremento
 
-- Aplicación local de un usuario: la clave compartida autoriza todo el laboratorio. No hay usuarios individuales, roles, sesiones revocables ni aislamiento entre organizaciones. No se presenta como servicio listo para Internet.
+- Acceso personal con una única cuenta y sesiones revocables. No hay registro público, roles ni aislamiento entre organizaciones; el despliegue está pensado para uso personal.
 - Límite de archivo: 10 MiB; 10.000 resultados, 100 CVE por resultado, 10.000 CVE únicos, profundidad 48 y 100.000 nodos. El parser no admite DTD, entidades externas ni variantes XML con namespaces en esta versión.
 - Las escrituras de una importación y de una ejecución son atómicas. Los fallos se registran como eventos operativos; no hay todavía una tabla persistente de intentos fallidos o trabajos en curso.
 - El límite de solicitudes es local al proceso, 120 por minuto por dirección. No es un control distribuido. El enriquecimiento es síncrono, sin colas ni reintentos automáticos. Las fuentes tienen destinos fijos y respuestas acotadas.

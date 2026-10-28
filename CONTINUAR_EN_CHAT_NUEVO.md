@@ -8,9 +8,9 @@ Quiero convertir esta copia en un proyecto independiente para crear un repositor
 
 Usar PostgreSQL para el proyecto desplegable. La copia incluye compose.yaml con PostgreSQL 17, psycopg y migraciones Alembic. Deben comprobarse las migraciones y el flujo completo contra PostgreSQL: esta copia no acredita un despliegue validado. El código actual también admite SQLite.
 
-Preparar configuración por entorno, instalación reproducible, pruebas, documentación y despliegue. Definir los requisitos de acceso y operación del destino; el acceso actual utiliza una clave compartida de laboratorio. Generar claves nuevas mediante scripts/setup.py. Elegir el alojamiento y preparar el repositorio antes de publicar o desplegar.
+Preparar configuración por entorno, instalación reproducible, pruebas, documentación y despliegue. El acceso actual es personal, mediante correo y contraseña; no hay registro público. El repositorio público está en GitHub, el frontend en Vercel, la API en Render y PostgreSQL en Neon.
 
-La marca actual es RiskEngine y la paleta usa grafito y naranja. El paquete Python es `riskengine`. El acceso personal se configura con `RISKENGINE_ADMIN_EMAIL` y `RISKENGINE_ADMIN_PASSWORD_HASH`; la antigua clave compartida ya no da acceso. El repositorio y el alojamiento todavía deben definirse. El índice sigue siendo experimental; no atribuir al proyecto una validación de riesgo ni eficacia que no se haya medido.
+La marca actual es RiskEngine y la paleta usa grafito y naranja. El paquete Python es `riskengine`. El acceso personal se configura con `RISKENGINE_ADMIN_EMAIL` y `RISKENGINE_ADMIN_PASSWORD`; la antigua clave compartida ya no da acceso. El dominio público es riskengine.criveradev.com y el repositorio es github.com/criveradev/riskengine. El índice sigue siendo experimental; no atribuir al proyecto una validación de riesgo ni eficacia que no se haya medido.
 
 ## Contenido
 

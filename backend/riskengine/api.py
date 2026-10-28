@@ -109,9 +109,9 @@ def create_app(settings: Settings | None = None, engine=None):
 
     @app.post("/api/auth/login")
     def login(body: LoginBody, request: Request, response: Response):
-        if not settings.admin_email or not settings.admin_password_hash:
+        if not settings.admin_email or not authentication.password_hash:
             raise AppError("auth_not_configured", "El administrador debe configurar el acceso personal.", 503)
-        valid_password = verify_password(body.password, settings.admin_password_hash)
+        valid_password = verify_password(body.password, authentication.password_hash)
         if not secrets.compare_digest(body.email.strip().casefold().encode(), settings.admin_email.encode()) or not valid_password:
             raise AppError("invalid_credentials", "Correo o contraseña incorrectos.", 401)
         token = authentication.create_session(request.cookies.get(settings.cookie_name, ""))

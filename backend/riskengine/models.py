@@ -149,3 +149,10 @@ class AuthSession(Base):
     token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
     credential_revision: Mapped[str] = mapped_column(String(64))
     expires_at: Mapped[str] = mapped_column(String(40), index=True)
+
+
+class PersonalAccount(Base):
+    __tablename__ = "personal_account"
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    email: Mapped[str] = mapped_column(String(254))
+    password_hash: Mapped[str] = mapped_column(String(256))

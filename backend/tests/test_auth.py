@@ -95,3 +95,24 @@ def test_password_hash_is_salted_and_never_plaintext():
 def test_unconfigured_login_is_closed(client):
     with TestClient(create_app(Settings('', allowed_origins=('http://testserver',)), client.app.state.repository.engine), headers=AUTH_HEADERS) as closed:
         assert closed.post('/api/auth/login', json={'email': EMAIL, 'password': PASSWORD}).status_code == 503
+
+
+def test_plain_environment_password_is_hashed_and_sessions_survive_restart(client):
+    from riskengine.models import PersonalAccount
+    engine = client.app.state.repository.engine
+    settings = Settings('', EMAIL, admin_password='synthetic-env-password', allowed_origins=('http://testserver',))
+    app = create_app(settings, engine)
+    with TestClient(app, headers=AUTH_HEADERS) as first:
+        assert first.post('/api/auth/login', json={'email': EMAIL, 'password': 'synthetic-env-password'}).status_code == 200
+        cookie = first.cookies.get('riskengine-session')
+        with client.app.state.repository.session() as db:
+            account = db.get(PersonalAccount, 'owner')
+            assert account.password_hash != 'synthetic-env-password'
+            assert verify_password('synthetic-env-password', account.password_hash)
+    with TestClient(create_app(settings, engine), headers=AUTH_HEADERS) as restarted:
+        assert restarted.get('/api/auth/me', headers={'Cookie': f'riskengine-session={cookie}'}).status_code == 200
+    changed = Settings('', EMAIL, admin_password='changed-env-password', allowed_origins=('http://testserver',))
+    with TestClient(create_app(changed, engine), headers=AUTH_HEADERS) as rotated:
+        assert rotated.get('/api/auth/me', headers={'Cookie': f'riskengine-session={cookie}'}).status_code == 401
+        assert rotated.post('/api/auth/login', json={'email': EMAIL, 'password': 'synthetic-env-password'}).status_code == 401
+        assert rotated.post('/api/auth/login', json={'email': EMAIL, 'password': 'changed-env-password'}).status_code == 200

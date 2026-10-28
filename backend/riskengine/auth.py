@@ -6,7 +6,7 @@ import secrets
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
-from .models import AuthSession
+from .models import AuthSession, PersonalAccount
 
 
 def hash_password(password: str) -> str:
@@ -29,7 +29,19 @@ def verify_password(password: str, encoded: str) -> bool:
 class Authentication:
     def __init__(self, engine, settings):
         self.engine, self.settings = engine, settings
-        self.revision = sha256((settings.admin_email + '\0' + settings.admin_password_hash).encode()).hexdigest()
+        self.password_hash = settings.admin_password_hash
+        if settings.admin_password and settings.admin_email:
+            with Session(engine) as db, db.begin():
+                account = db.get(PersonalAccount, 'owner')
+                if account is None:
+                    account = PersonalAccount(id='owner', email=settings.admin_email,
+                                              password_hash=hash_password(settings.admin_password))
+                    db.add(account)
+                elif account.email != settings.admin_email or not verify_password(settings.admin_password, account.password_hash):
+                    account.email = settings.admin_email
+                    account.password_hash = hash_password(settings.admin_password)
+                self.password_hash = account.password_hash
+        self.revision = sha256((settings.admin_email + '\0' + self.password_hash).encode()).hexdigest()
 
     def create_session(self, previous: str = '') -> str:
         token = secrets.token_urlsafe(32)
@@ -43,7 +55,7 @@ class Authentication:
         return token
 
     def authenticated(self, token: str) -> bool:
-        if not token or len(token) > 128 or not self.settings.admin_password_hash:
+        if not token or len(token) > 128 or not self.password_hash:
             return False
         with Session(self.engine) as db:
             row = db.get(AuthSession, sha256(token.encode()).hexdigest())

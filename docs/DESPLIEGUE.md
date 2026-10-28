@@ -25,11 +25,11 @@ Mantén los caracteres escapados de la URL original. No copies el comando `psql`
 
 ## 2. API en Render
 
-El servicio se administra desde `render.yaml`, que usa el Dockerfile de la raíz y el plan Free con una sola instancia. El Blueprint solicita `DATABASE_URL` y `RISKENGINE_ADMIN_PASSWORD_HASH`; configura además `RISKENGINE_ADMIN_EMAIL` y `RISKENGINE_ALLOWED_ORIGINS`. El administrador es una única cuenta y no existe registro público.
+El servicio se administra desde `render.yaml`, que usa el Dockerfile de la raíz y el plan Free con una sola instancia. El Blueprint solicita `DATABASE_URL` y `RISKENGINE_ADMIN_PASSWORD`; configura además `RISKENGINE_ADMIN_EMAIL` y `RISKENGINE_ALLOWED_ORIGINS`. El administrador es una única cuenta y no existe registro público.
 
-Para preparar la contraseña ejecuta localmente `backend/.venv/bin/python scripts/configure_admin.py`. Copia el valor de `RISKENGINE_ADMIN_PASSWORD_HASH` desde `.env` a las variables de Render, sin las comillas exteriores. El script usa entrada oculta y solo almacena un hash scrypt con sal. Nunca añadas la contraseña ni su hash a GitHub o a Vercel.
+Para configurar las credenciales localmente ejecuta `backend/.venv/bin/python scripts/configure_admin.py`. En Render, introduce el correo en `RISKENGINE_ADMIN_EMAIL` y la contraseña elegida directamente en `RISKENGINE_ADMIN_PASSWORD`. No necesitas generar ni copiar hashes: la aplicación los calcula internamente y almacena solo el hash con sal en `personal_account` en Neon. No añadas las credenciales a GitHub o Vercel. El archivo `.env` local contiene la configuración privada y está excluido del repositorio.
 
-Antes de publicar un cambio de autenticación, configura estas variables en Render. Después del despliegue, retira `RISKENGINE_API_TOKEN`, que ya no se acepta. Al cambiar el correo o el hash se invalidan las sesiones anteriores. Para cambiar la contraseña o recuperarla repite este procedimiento; no se envían correos de recuperación.
+Antes de publicar un cambio de autenticación, configura estas variables en Render. Después del despliegue, retira `RISKENGINE_API_TOKEN`, que ya no se acepta. Al cambiar el correo o la contraseña se invalidan las sesiones anteriores. Para cambiar la contraseña o recuperarla repite este procedimiento; no se envían correos de recuperación.
 
 Las sesiones se guardan en `auth_sessions` en Neon; solo se almacena el hash de su identificador aleatorio. Caducan a las 8 horas y «Salir» las revoca. La migración de sesiones no modifica auditorías ni resultados existentes.
 
