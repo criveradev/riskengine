@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: riskengine
+    runtime: docker
+    plan: free
+    numInstances: 1
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    domains:
+      - riskengine.criveradev.com
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: RISKENGINE_API_TOKEN
+        generateValue: true

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- DATOS SINTÉTICOS. No provienen de un escaneo ni demuestran vulnerabilidades reales. -->
+<report id="synthetic-thesis-report">
+  <gmp><version>synthetic-gmp-shape-22.7</version></gmp>
+  <filters><term>synthetic-example; no-real-scan</term></filters>
+  <results>
+    <result id="synthetic-result-1">
+      <name>Ejemplo sintético A · servicio expuesto</name><host>192.0.2.10</host><port>443/tcp</port><severity>9.8</severity>
+      <description>Observación ficticia para probar la importación. La CVE se usa como referencia; este archivo no acredita que el activo esté afectado.</description>
+      <nvt oid="synthetic-oid-1"><severities score="9.8"><severity type="cvss_base_v3"><origin>synthetic-fixture</origin><date>2026-10-16</date><score>9.8</score><value>CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H</value></severity></severities><refs><ref type="cve" id="CVE-2021-44228"/></refs></nvt>
+    </result>
+    <result id="synthetic-result-2">
+      <name>Ejemplo sintético B · disponibilidad</name><host>192.0.2.20</host><port>443/tcp</port><severity>7.5</severity>
+      <description>Segundo caso ficticio para comprobar ranking y trazabilidad.</description>
+      <nvt oid="synthetic-oid-2"><severities score="7.5"><severity type="cvss_base_v3"><origin>synthetic-fixture</origin><date>2026-10-16</date><score>7.5</score><value>CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H</value></severity></severities><refs><ref type="cve" id="CVE-2023-44487"/></refs></nvt>
+    </result>
+    <result id="synthetic-result-3">
+      <name>Ejemplo sintético C · hallazgo sin CVE</name><host>192.0.2.20</host><port>general/tcp</port><severity>0</severity>
+      <description>Debe conservarse aunque falten CVE y un vector CVSS comparable.</description><nvt oid="synthetic-oid-3"><refs/></nvt>
+    </result>
+  </results>
+</report>
