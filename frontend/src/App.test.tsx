@@ -29,7 +29,6 @@ function finding(reportId: string): Finding {
 
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
-  sessionStorage.setItem('riskengine-token', 'synthetic-test-token');
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
@@ -37,6 +36,7 @@ beforeEach(() => {
   vi.mocked(api).mockReset();
   vi.mocked(apiFile).mockReset();
   vi.mocked(api).mockImplementation(async path => {
+    if (path === '/auth/me') return { email: 'owner@example.test' };
     if (path === '/audits?limit=100') return { items: audits, total: audits.length };
     if (path.includes('/imports?')) {
       const ids = path.includes('/audit-a/') ? ['report-a1', 'report-a2'] : path.includes('/audit-b/') ? ['report-b1'] : [];
@@ -157,7 +157,7 @@ test('los botones descargan PDF, CSV y JSON de la ejecución seleccionada', asyn
     const button = Array.from(container.querySelectorAll<HTMLButtonElement>('.export-actions button'))
       .find(element => element.textContent === `Descargar ${format.toUpperCase()} ↓`)!;
     await act(async () => button.click());
-    expect(apiFile).toHaveBeenLastCalledWith(`/audits/audit-a/runs/run-a/export?format=${format}`, 'synthetic-test-token');
+    expect(apiFile).toHaveBeenLastCalledWith(`/audits/audit-a/runs/run-a/export?format=${format}`);
   }
   expect(downloads).toEqual(['riskengine-run-a.pdf', 'riskengine-run-a.csv', 'riskengine-run-a.json']);
   vi.runAllTimers();

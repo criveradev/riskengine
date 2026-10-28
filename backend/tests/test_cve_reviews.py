@@ -42,7 +42,7 @@ def test_review_scope_authentication_and_validation(client, imported):
     finding=next(f for f in client.app.state.repository.findings(audit)['items'] if f['cves'])
     url=f"/api/audits/{audit}/findings/{finding['id']}/cves/{finding['cves'][0]}/reviews"
     body={'status':'applicable','reviewer':'Tester','rationale':'Evidence'}
-    assert client.post(url,json=body,headers={'Authorization':''}).status_code==401
+    assert client.post(url,json=body,headers={'Cookie':''}).status_code==401
     other=client.post('/api/audits',json={'name':'Other','scope':'Other'}).json()['id']
     assert client.post(url.replace(audit,other),json=body).status_code==404
     assert client.post(url.replace(finding['cves'][0],'CVE-2099-9999'),json=body).status_code==404

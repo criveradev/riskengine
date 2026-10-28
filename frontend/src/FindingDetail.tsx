@@ -6,8 +6,8 @@ import { CVEReviewEditor } from './CVEReviewEditor';
 import type { Finding } from './types';
 
 type DetailTab = 'evidence' | 'detector' | 'reviews';
-export function FindingDetail({ finding, auditId, token, refresh }: {
-  finding: Finding; auditId: string; token: string; refresh: () => Promise<void>;
+export function FindingDetail({ finding, auditId, refresh }: {
+  finding: Finding; auditId: string; refresh: () => Promise<void>;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -50,11 +50,11 @@ export function FindingDetail({ finding, auditId, token, refresh }: {
           <h3>Referencias CVE</h3><p className="detail-cves">{finding.cves.join(' · ') || 'Este hallazgo no incluye referencias CVE.'}</p>
           <details className="technical-details"><summary>Datos técnicos de la puntuación</summary><p>Severidad original: {finding.severity ?? 'No indicada'}.</p><p>{finding.cvss_admission?.message ?? 'Solo se admite un vector CVSS Base 3.1 explícito.'}</p>{finding.vector && <p className="detail-cves">{finding.vector}</p>}</details>
         </section>}
-        {tab === 'detector' && <DetectorDetails auditId={auditId} findingId={finding.id} token={token} expanded/>}
+        {tab === 'detector' && <DetectorDetails auditId={auditId} findingId={finding.id} expanded/>}
         {tab === 'reviews' && <section className="cve-review-list"><h3>¿Estos CVE afectan a este activo?</h3><p>Revisa producto, versión y configuración antes de decidir. La referencia del escáner no basta para confirmar su aplicabilidad.</p><p className="muted">El responsable se registra como una declaración, no como una identidad verificada.</p>
           {!finding.cves.length && <p>Este hallazgo no tiene CVE asociados para revisar.</p>}
           {(finding.cve_reviews ?? []).map(review => <CVEReviewEditor key={`${review.cve}-${review.id ?? 'pending'}`} review={review} save={async decision => {
-            await api(`/audits/${auditId}/findings/${finding.id}/cves/${review.cve}/reviews`, token, 'POST', decision);
+            await api(`/audits/${auditId}/findings/${finding.id}/cves/${review.cve}/reviews`, 'POST', decision);
             await refresh(); setNotice('Revisión guardada. Genera una nueva ejecución para utilizarla.');
           }}/>)}</section>}
       </div>

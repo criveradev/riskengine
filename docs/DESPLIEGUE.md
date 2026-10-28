@@ -9,7 +9,7 @@
 | PostgreSQL 17 | Neon, región AWS Oregon |
 | DNS | Cloudflare |
 
-Render y Neon están desplegados en Oregon. La interfaz utiliza `/api` en su propio dominio. `frontend/vercel.json` reenvía estas solicitudes a Render mediante rewrites externos; no se necesita abrir CORS. La clave compartida viaja como `Authorization` en cada petición y el backend devuelve `Cache-Control: no-store` para la API.
+Render y Neon están desplegados en Oregon. La interfaz utiliza `/api` en su propio dominio. `frontend/vercel.json` reenvía estas solicitudes a Render mediante rewrites externos; no se necesita abrir CORS. La sesión viaja en una cookie HttpOnly, Secure y SameSite=Strict, y el backend devuelve `Cache-Control: no-store` para la API.
 
 ## 1. PostgreSQL en Neon
 
@@ -25,7 +25,13 @@ Mantén los caracteres escapados de la URL original. No copies el comando `psql`
 
 ## 2. API en Render
 
-El servicio se administra desde `render.yaml`, que usa el Dockerfile de la raíz y el plan Free con una sola instancia. El Blueprint solicita `DATABASE_URL` y genera una clave propia `RISKENGINE_API_TOKEN`. Consulta esta clave en **Environment** para iniciar sesión en RiskEngine; la clave local de `.env` es independiente.
+El servicio se administra desde `render.yaml`, que usa el Dockerfile de la raíz y el plan Free con una sola instancia. El Blueprint solicita `DATABASE_URL` y `RISKENGINE_ADMIN_PASSWORD_HASH`; configura además `RISKENGINE_ADMIN_EMAIL` y `RISKENGINE_ALLOWED_ORIGINS`. El administrador es una única cuenta y no existe registro público.
+
+Para preparar la contraseña ejecuta localmente `backend/.venv/bin/python scripts/configure_admin.py`. Copia el valor de `RISKENGINE_ADMIN_PASSWORD_HASH` desde `.env` a las variables de Render, sin las comillas exteriores. El script usa entrada oculta y solo almacena un hash scrypt con sal. Nunca añadas la contraseña ni su hash a GitHub o a Vercel.
+
+Antes de publicar un cambio de autenticación, configura estas variables en Render. Después del despliegue, retira `RISKENGINE_API_TOKEN`, que ya no se acepta. Al cambiar el correo o el hash se invalidan las sesiones anteriores. Para cambiar la contraseña o recuperarla repite este procedimiento; no se envían correos de recuperación.
+
+Las sesiones se guardan en `auth_sessions` en Neon; solo se almacena el hash de su identificador aleatorio. Caducan a las 8 horas y «Salir» las revoca. La migración de sesiones no modifica auditorías ni resultados existentes.
 
 El arranque ejecuta `alembic upgrade head` antes de iniciar Uvicorn. El proceso escucha en `0.0.0.0` y el puerto `PORT` que indica Render. La ruta de salud es `/health`. Si la migración falla, el servidor no arranca. Conserva un respaldo en Neon antes de aplicar migraciones futuras.
 
@@ -43,7 +49,7 @@ Importa el repositorio de GitHub y configura:
 | Build Command | `npm run build` |
 | Output Directory | `dist` |
 
-El archivo `frontend/vercel.json` contiene las reglas de proxy para `/api/:path*` y `/health`. Si cambia el hostname de Render, actualiza sus destinos. No se necesitan `DATABASE_URL`, `RISKENGINE_API_TOKEN` ni variables `VITE_*` en Vercel.
+El archivo `frontend/vercel.json` contiene las reglas de proxy para `/api/:path*` y `/health`. Si cambia el hostname de Render, actualiza sus destinos. No se necesitan `DATABASE_URL`, credenciales del administrador ni variables `VITE_*` en Vercel. El proxy debe conservar las cookies, `Set-Cookie`, `Origin` y `X-RiskEngine-Request`.
 
 Añade `riskengine.criveradev.com` en **Settings → Domains** del proyecto de Vercel. Mantén el plan Hobby gratuito dentro de sus condiciones y límites de uso.
 
@@ -64,12 +70,12 @@ Si el registro `riskengine` apunta a `riskengine-s0dr.onrender.com`, edítalo pa
 ## 5. Verificación
 
 1. Comprueba `/health` desde Render y desde el dominio público de Vercel.
-2. Inicia sesión con la clave de Render y comprueba la consulta de auditorías en Neon.
+2. Inicia sesión con el correo y la contraseña personales y comprueba la consulta de auditorías en Neon.
 3. Crea una auditoría identificada como prueba e importa el XML sintético disponible en la interfaz.
 4. Guarda una ejecución y descarga PDF, CSV y JSON.
 5. Comprueba que los datos sobreviven a un reinicio de la aplicación.
 
-El acceso actual usa una clave compartida: quien la tenga accede al mismo conjunto de auditorías. Si se incorporan usuarios independientes, se necesitan cuentas, permisos y aislamiento de datos.
+El acceso actual está limitado a una sola cuenta personal. Si se incorporan usuarios independientes, se necesitan cuentas, permisos y aislamiento de datos. El correo se usa como identificador de acceso y no necesita recibir mensajes.
 
 Verificación local del 28 de octubre de 2026: 71 pruebas de backend, 17 de frontend y compilación de producción aprobadas. En PostgreSQL 16 temporal con UTF-8 se comprobaron migraciones, esquema, importación XML sintética, cálculo, exportaciones y persistencia al recrear la aplicación. El primer despliegue de Render con PostgreSQL 17 en Neon también completó el arranque y el acceso autenticado a la lista de auditorías.
 

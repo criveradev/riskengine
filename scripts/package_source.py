@@ -3,12 +3,12 @@ import os
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
-ROOT_FILES = {'README.md', 'VALIDACION.md', 'Dockerfile', 'compose.yaml', '.gitignore', '.dockerignore'}
+ROOT_FILES = {'README.md', 'VALIDACION.md', 'Dockerfile', 'compose.yaml', 'render.yaml', '.gitignore', '.dockerignore'}
 BLOCKED_DIRECTORIES = {
     '.venv', 'venv', '.git', '.idea', 'node_modules', '.npm-cache', '.qa',
     '__pycache__', '.pytest_cache', '.test-tmp',
 }
-EXTENSIONS = {'.py', '.toml', '.ini', '.mako', '.xml', '.ts', '.tsx', '.css', '.html', '.js'}
+EXTENSIONS = {'.py', '.toml', '.ini', '.mako', '.xml', '.ts', '.tsx', '.css', '.html', '.js', '.svg'}
 
 
 def select_files(root: Path) -> list[Path]:
@@ -31,7 +31,9 @@ def select_files(root: Path) -> list[Path]:
             elif relative.parts[0] == 'backend':
                 allowed = path.suffix in EXTENSIONS or relative.name == 'requirements.lock'
             elif relative.parts[0] == 'frontend':
-                allowed = path.suffix in EXTENSIONS or relative.name in {'package.json', 'package-lock.json', 'tsconfig.json'}
+                allowed = path.suffix in EXTENSIONS or relative.name in {'package.json', 'package-lock.json', 'tsconfig.json', 'vercel.json'}
+            elif relative.parts[0] == 'docs':
+                allowed = path.suffix == '.md'
             elif relative.parts[0] == 'scripts':
                 allowed = path.suffix == '.py'
             else:

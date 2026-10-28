@@ -10,7 +10,7 @@ Usar PostgreSQL para el proyecto desplegable. La copia incluye compose.yaml con 
 
 Preparar configuración por entorno, instalación reproducible, pruebas, documentación y despliegue. Definir los requisitos de acceso y operación del destino; el acceso actual utiliza una clave compartida de laboratorio. Generar claves nuevas mediante scripts/setup.py. Elegir el alojamiento y preparar el repositorio antes de publicar o desplegar.
 
-La marca actual es RiskEngine y la paleta usa grafito y naranja. El paquete Python es `riskengine` y la clave se configura con `RISKENGINE_API_TOKEN`. El repositorio y el alojamiento todavía deben definirse. El índice sigue siendo experimental; no atribuir al proyecto una validación de riesgo ni eficacia que no se haya medido.
+La marca actual es RiskEngine y la paleta usa grafito y naranja. El paquete Python es `riskengine`. El acceso personal se configura con `RISKENGINE_ADMIN_EMAIL` y `RISKENGINE_ADMIN_PASSWORD_HASH`; la antigua clave compartida ya no da acceso. El repositorio y el alojamiento todavía deben definirse. El índice sigue siendo experimental; no atribuir al proyecto una validación de riesgo ni eficacia que no se haya medido.
 
 ## Contenido
 

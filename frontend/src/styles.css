@@ -255,3 +255,5 @@ footer { padding: 20px 25px; color: #96929f; border-top: 1px solid var(--border)
 }
 
 .findings-panel .finding-tools button { box-sizing: border-box; width: 90px; height: 46px; padding: 11px 12px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
+
+.brand-icon img { display: block; width: 43px; height: 43px; border-radius: 12px; }

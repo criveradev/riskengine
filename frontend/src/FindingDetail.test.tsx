@@ -18,7 +18,7 @@ test('detail separates evidence, detector and editable reviews and restores focu
   const finding: Finding = {id:'f',external_id:'f',import_id:'i',asset_id:'a',host:'192.0.2.1',name:'vsftpd',description:'',port:'21/tcp',cves:['CVE-2011-2523'],severity:9.8,cvss:9.8,vector:null,status:'open',criticality:1,exposure:1,cve_reviews:[{cve:'CVE-2011-2523',status:'pending',reviewer:'Analista',rationale:'Evidencia de prueba',reviewed_at:null}]};
   vi.mocked(api).mockResolvedValue({});
   try {
-    await act(async () => root.render(<FindingDetail finding={finding} auditId="audit" token="test" refresh={refresh}/>));
+    await act(async () => root.render(<FindingDetail finding={finding} auditId="audit" refresh={refresh}/>));
     const trigger = container.querySelector('button')!;
     await act(async () => trigger.click());
     expect(show).toHaveBeenCalled();
@@ -29,7 +29,7 @@ test('detail separates evidence, detector and editable reviews and restores focu
     expect(document.querySelector('dialog')?.textContent).not.toContain('Sin evidencia detallada');
     await act(async () => { const select = document.querySelector<HTMLSelectElement>('dialog select')!; select.value='not_applicable';select.dispatchEvent(new Event('change',{bubbles:true})); });
     await act(async () => document.querySelector('dialog form')!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
-    expect(api).toHaveBeenCalledWith('/audits/audit/findings/f/cves/CVE-2011-2523/reviews','test','POST',{status:'not_applicable',reviewer:'Analista',rationale:'Evidencia de prueba'});
+    expect(api).toHaveBeenCalledWith('/audits/audit/findings/f/cves/CVE-2011-2523/reviews','POST',{status:'not_applicable',reviewer:'Analista',rationale:'Evidencia de prueba'});
     expect(refresh).toHaveBeenCalledOnce();
     expect(document.querySelector('dialog [role="status"]')?.textContent).toContain('Revisión guardada');
     await act(async () => document.querySelector('dialog')!.dispatchEvent(new Event('cancel',{cancelable:true})));

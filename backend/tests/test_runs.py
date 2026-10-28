@@ -60,8 +60,8 @@ def test_weight_validation_and_cross_audit_scope(client, imported):
 
 def test_unauthenticated_requests_cannot_read_or_upload(client, imported):
     audit, _ = imported
-    assert client.get('/api/audits', headers={'Authorization': ''}).status_code == 401
-    assert client.post(f'/api/audits/{audit}/imports', headers={'Authorization': 'Bearer wrong'}, files={'file': ('a.xml', b'not-xml')}).status_code == 401
+    assert client.get('/api/audits', headers={'Cookie': ''}).status_code == 401
+    assert client.post(f'/api/audits/{audit}/imports', headers={'Cookie': ''}, files={'file': ('a.xml', b'not-xml')}).status_code == 401
 
 
 def test_tracking_status_is_validated(client, imported):

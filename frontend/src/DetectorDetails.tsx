@@ -13,7 +13,7 @@ const fields: [keyof Omit<DetectorInfo, 'references'>, string][] = [
   ['detection', 'Método de detección'], ['solution', 'Solución indicada'],
 ];
 
-export function DetectorDetails({ auditId, findingId, token, expanded = false }: { auditId: string; findingId: string; token: string; expanded?: boolean }) {
+export function DetectorDetails({ auditId, findingId, expanded = false }: { auditId: string; findingId: string; expanded?: boolean }) {
   const [data, setData] = useState<DetectorResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,7 +21,7 @@ export function DetectorDetails({ auditId, findingId, token, expanded = false }:
   async function load() {
     if (inFlight.current || data) return;
     inFlight.current = true; setLoading(true); setError('');
-    try { setData(await api<DetectorResponse>(`/audits/${auditId}/findings/${findingId}/detector`, token)); }
+    try { setData(await api<DetectorResponse>(`/audits/${auditId}/findings/${findingId}/detector`)); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo cargar la información del detector.'); }
     finally { inFlight.current = false; setLoading(false); }
   }

@@ -18,7 +18,8 @@ services:
       - "127.0.0.1:8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg://riskengine:${POSTGRES_PASSWORD}@db:5432/riskengine
-      RISKENGINE_API_TOKEN: ${RISKENGINE_API_TOKEN:?Ejecuta scripts/setup.py primero}
+      RISKENGINE_ADMIN_EMAIL: ${RISKENGINE_ADMIN_EMAIL:?Configura scripts/configure_admin.py primero}
+      RISKENGINE_ADMIN_PASSWORD_HASH: ${RISKENGINE_ADMIN_PASSWORD_HASH:?Configura scripts/configure_admin.py primero}
     depends_on:
       db:
         condition: service_healthy

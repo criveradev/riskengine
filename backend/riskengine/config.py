@@ -19,13 +19,23 @@ def database_url_from_env() -> str:
 @dataclass(frozen=True)
 class Settings:
     database_url: str
-    api_token: str
+    admin_email: str = ""
+    admin_password_hash: str = ""
     max_upload_bytes: int = 10 * 1024 * 1024
+    secure_cookie: bool = False
+    allowed_origins: tuple[str, ...] = ("http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:8001", "http://127.0.0.1:8001")
+
+    @property
+    def cookie_name(self):
+        return "__Host-riskengine-session" if self.secure_cookie else "riskengine-session"
 
     @classmethod
     def from_env(cls):
         load_dotenv(PROJECT_ROOT / ".env")
-        token = os.environ.get("RISKENGINE_API_TOKEN", "")
-        if len(token) < 32:
-            raise RuntimeError("Configura RISKENGINE_API_TOKEN con al menos 32 caracteres. Ejecuta scripts/setup.py.")
-        return cls(database_url_from_env(), token)
+        deployed = os.getenv("RENDER") == "true"
+        origins = os.getenv("RISKENGINE_ALLOWED_ORIGINS", "")
+        return cls(database_url=database_url_from_env(),
+                   admin_email=os.getenv("RISKENGINE_ADMIN_EMAIL", "").strip().casefold(),
+                   admin_password_hash=os.getenv("RISKENGINE_ADMIN_PASSWORD_HASH", ""),
+                   secure_cookie=deployed or os.getenv("RISKENGINE_SECURE_COOKIE") == "true",
+                   allowed_origins=tuple(origin.strip().rstrip('/') for origin in origins.split(',') if origin.strip()) if origins else cls.allowed_origins)

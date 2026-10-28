@@ -13,6 +13,10 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.datastructures import Headers
+from anyio import to_thread
+from pydantic import BaseModel, Field
+
+from .auth import Authentication, verify_password
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .config import PROJECT_ROOT, Settings
@@ -27,10 +31,17 @@ from .services import Services
 logger = logging.getLogger("riskengine.api")
 
 
+class LoginBody(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=1, max_length=1024)
+
+
 class GuardMiddleware:
-    def __init__(self, app, token, max_bytes):
-        self.app, self.token, self.max_bytes = app, token, max_bytes
+    def __init__(self, app, authentication, settings):
+        self.app, self.authentication, self.settings = app, authentication, settings
+        self.max_bytes = settings.max_upload_bytes
         self.requests = defaultdict(deque)
+        self.login_attempts = deque()
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http" or not scope["path"].startswith("/api/"):
@@ -38,7 +49,7 @@ class GuardMiddleware:
         request_id = str(uuid4())
         headers = Headers(scope=scope)
         async def fail(status, code, message):
-            response = JSONResponse({"error": {"code": code, "message": message}, "request_id": request_id}, status_code=status)
+            response = JSONResponse({"error": {"code": code, "message": message}, "request_id": request_id}, status_code=status, headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
             await response(scope, receive, send)
         client = scope.get("client")
         client_id = client[0] if client else "local"
@@ -51,15 +62,31 @@ class GuardMiddleware:
         if len(recent) >= 120:
             return await fail(429, "rate_limit", "Demasiadas solicitudes. Espera un minuto.")
         recent.append(clock)
-        if not secrets.compare_digest(headers.get("authorization", "").encode(), ("Bearer " + self.token).encode()):
-            return await fail(401, "unauthorized", "Introduce una clave de acceso válida.")
+        if scope["method"] not in {"GET", "HEAD", "OPTIONS"}:
+            if headers.get("x-riskengine-request") != "1" or headers.get("origin") not in self.settings.allowed_origins:
+                return await fail(403, "csrf_rejected", "Solicitud no autorizada desde este origen.")
+        is_login = scope["path"] == "/api/auth/login" and scope["method"] == "POST"
+        if is_login:
+            while self.login_attempts and self.login_attempts[0] < clock - 900:
+                self.login_attempts.popleft()
+            if len(self.login_attempts) >= 10:
+                return await fail(429, "login_rate_limit", "Demasiados intentos de acceso. Espera 15 minutos.")
+            self.login_attempts.append(clock)
+        else:
+            token = Request(scope).cookies.get(self.settings.cookie_name, "")
+            try:
+                authenticated = await to_thread.run_sync(self.authentication.authenticated, token)
+            except SQLAlchemyError:
+                return await fail(503, "database_error", "No se pudo comprobar la sesión. Inténtalo de nuevo.")
+            if not authenticated:
+                return await fail(401, "unauthorized", "Inicia sesión para continuar.")
         size = 0
         async def limited_receive():
             nonlocal size
             message = await receive()
             if message["type"] == "http.request":
                 size += len(message.get("body", b""))
-                if size > self.max_bytes + 64 * 1024:
+                if size > (4096 if is_login else self.max_bytes + 64 * 1024):
                     raise HTTPException(413, "La solicitud supera el tamaño permitido.")
             return message
         async def logged_send(message):
@@ -76,7 +103,33 @@ def create_app(settings: Settings | None = None, engine=None):
     services = Services(repository)
     app = FastAPI(title="RiskEngine", version="0.1.0", description="MVP local. Motor experimental configurable; no validado académicamente.")
     app.state.repository, app.state.services = repository, services
-    app.add_middleware(GuardMiddleware, token=settings.api_token, max_bytes=settings.max_upload_bytes)
+    authentication = Authentication(repository.engine, settings)
+    app.state.authentication = authentication
+    app.add_middleware(GuardMiddleware, authentication=authentication, settings=settings)
+
+    @app.post("/api/auth/login")
+    def login(body: LoginBody, request: Request, response: Response):
+        if not settings.admin_email or not settings.admin_password_hash:
+            raise AppError("auth_not_configured", "El administrador debe configurar el acceso personal.", 503)
+        valid_password = verify_password(body.password, settings.admin_password_hash)
+        if not secrets.compare_digest(body.email.strip().casefold().encode(), settings.admin_email.encode()) or not valid_password:
+            raise AppError("invalid_credentials", "Correo o contraseña incorrectos.", 401)
+        token = authentication.create_session(request.cookies.get(settings.cookie_name, ""))
+        response.set_cookie(settings.cookie_name, token, max_age=8 * 3600, httponly=True,
+                            secure=settings.secure_cookie, samesite="strict", path="/")
+        return {"email": settings.admin_email}
+
+    @app.get("/api/auth/me")
+    def current_user():
+        return {"email": settings.admin_email}
+
+    @app.post("/api/auth/logout", status_code=204)
+    def logout(request: Request):
+        authentication.revoke(request.cookies.get(settings.cookie_name, ""))
+        response = Response(status_code=204)
+        response.delete_cookie(settings.cookie_name, path="/", secure=settings.secure_cookie,
+                               httponly=True, samesite="strict")
+        return response
 
     @app.exception_handler(AppError)
     async def app_error(request: Request, exc: AppError):

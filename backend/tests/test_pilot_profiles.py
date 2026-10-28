@@ -62,7 +62,7 @@ def test_comparison_uses_frozen_inputs_and_reports_common_coverage(client, impor
     repo.save_evidence([{'cve':cve,'source':'epss','state':'error','provenance':'synthetic'} for cve in repo.cves(audit)])
     assert client.get(url).json()==data
     assert repo.runs(audit,100,0)['total']==1
-    assert client.get(url,headers={'Authorization':''}).status_code==401
+    assert client.get(url,headers={'Cookie':''}).status_code==401
     other=client.post('/api/audits',json={'name':'Other','scope':'Synthetic'}).json()['id']
     assert client.get(url.replace(audit,other)).status_code==404
 

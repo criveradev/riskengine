@@ -16,12 +16,12 @@ test('loads only on opening, retries errors and renders detector text safely', a
     source: { filename: 'report.xml', sha256: 'test' },
   });
   try {
-    await act(async () => root.render(<DetectorDetails auditId="audit" findingId="finding" token="test"/>));
+    await act(async () => root.render(<DetectorDetails auditId="audit" findingId="finding"/>));
     expect(api).not.toHaveBeenCalled();
     await act(async () => { const details = container.querySelector('details')!; details.open = true; await new Promise(resolve => setTimeout(resolve, 0)); });
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('Error de carga');
     await act(async () => container.querySelector('button')!.click());
-    expect(api).toHaveBeenLastCalledWith('/audits/audit/findings/finding/detector', 'test');
+    expect(api).toHaveBeenLastCalledWith('/audits/audit/findings/finding/detector');
     expect(container.textContent).toContain('Example 1.0');
     expect(container.textContent).toContain('No informado en el XML.');
     expect(container.querySelector('img')).toBeNull();

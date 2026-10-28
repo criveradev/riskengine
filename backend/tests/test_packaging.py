@@ -11,7 +11,7 @@ def test_package_excludes_local_environments_and_private_data(tmp_path):
     included = {
         'README.md', 'backend/riskengine/domain.py', 'backend/requirements.lock',
         'frontend/src/App.tsx', 'frontend/package.json', 'frontend/dist/index.html',
-        'scripts/setup.py',
+        'scripts/setup.py', 'render.yaml', 'frontend/vercel.json', 'frontend/public/riskengine-icon.svg', 'docs/DESPLIEGUE.md',
     }
     excluded = {
         '.env', 'backend/.env', 'backend/riskengine.db', 'backend/local.sqlite3',

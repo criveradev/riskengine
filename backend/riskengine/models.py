@@ -142,3 +142,10 @@ class CVEReview(Base):
     reviewer: Mapped[str] = mapped_column(String(160))
     rationale: Mapped[str] = mapped_column(Text)
     reviewed_at: Mapped[str] = mapped_column(String(40), default=now)
+
+
+class AuthSession(Base):
+    __tablename__ = "auth_sessions"
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    credential_revision: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[str] = mapped_column(String(40), index=True)

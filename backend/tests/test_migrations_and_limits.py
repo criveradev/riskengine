@@ -47,9 +47,10 @@ def test_position_migration_restores_xml_order(tmp_path, monkeypatch):
 def test_upload_limit_and_auth_before_processing(tmp_path):
     engine = make_engine(f'sqlite:///{tmp_path / "limits.db"}')
     Base.metadata.create_all(engine)
-    token = 'test-limit-token-only-not-for-outside-tests'
-    app = create_app(Settings('', token, max_upload_bytes=50), engine)
-    with TestClient(app, headers={'Authorization': 'Bearer ' + token}) as client:
+    from conftest import test_settings, sign_in, AUTH_HEADERS
+    app = create_app(test_settings(max_upload_bytes=50), engine)
+    with TestClient(app, headers=AUTH_HEADERS) as client:
+        sign_in(client)
         audit = client.post('/api/audits', json={'name': 'Límite', 'scope': 'Prueba'}).json()['id']
         result = client.post(f'/api/audits/{audit}/imports', files={'file': ('large.xml', b'x' * 100)})
         assert result.status_code == 413

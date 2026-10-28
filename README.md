@@ -14,7 +14,7 @@ React y TypeScript en la interfaz; FastAPI en el backend; SQLAlchemy y migracion
 - Consulta explícita de EPSS y KEV con fuentes, fechas y estados de error.
 - Motor puro y versionado, ejecuciones con snapshots y descargas PDF, CSV y JSON.
 - Tema oscuro con fondos grafito, paneles translúcidos y acentos naranja.
-- Acceso con clave compartida para un laboratorio local de un usuario.
+- Acceso personal con correo y contraseña, sesiones revocables y sin registro público.
 
 La fórmula implementada es **una candidata experimental**, no la fórmula académica aprobada. No hay pesos predeterminados: el usuario los indica y confirma su carácter experimental. El adaptador XML se comprobó con fixtures sintéticos; falta validarlo con el archivo real de T07. Este incremento no acredita la finalización de H5–H7 ni una validación académica.
 
@@ -36,6 +36,7 @@ python3 -m venv backend/.venv
 source backend/.venv/bin/activate
 python -m pip install -r backend/requirements.lock
 python -m pip install --no-deps -e backend
+python scripts/configure_admin.py
 ```
 
 Si ya existe `backend/.venv`, activa ese entorno y omite su creación. En PyCharm selecciona `backend/.venv/bin/python` como intérprete del proyecto y del módulo del backend.
@@ -53,7 +54,7 @@ alembic upgrade head
 uvicorn riskengine.main:app --host 127.0.0.1 --port 8000
 ```
 
-Abre **http://127.0.0.1:8000**. Entra con el valor de `RISKENGINE_API_TOKEN` de `.env`. No publiques ese archivo. La clave se guarda en `sessionStorage` durante la sesión del navegador y se elimina con «Salir».
+Abre **http://127.0.0.1:8000**. Entra con el correo y la contraseña configurados mediante `scripts/configure_admin.py`. `.env` guarda el correo y un hash scrypt con sal, nunca la contraseña. La sesión usa una cookie HttpOnly, caduca a las 8 horas y se revoca con «Salir». No publiques `.env`.
 
 Para desarrollar la interfaz sin recompilar, ejecuta `npm run dev` desde `frontend` en otra terminal, manteniendo el backend en el puerto 8000. Abre http://127.0.0.1:5173. Vite reenvía `/api` al backend; no se habilita CORS abierto.
 
@@ -107,7 +108,10 @@ Las evidencias deben tener fecha admisible según la antigüedad indicada por el
 
 | Variable | Uso |
 |---|---|
-| `RISKENGINE_API_TOKEN` | Clave de al menos 32 caracteres, generada por `setup.py`. Obligatoria. |
+| `RISKENGINE_ADMIN_EMAIL` | Única cuenta autorizada. |
+| `RISKENGINE_ADMIN_PASSWORD_HASH` | Hash scrypt generado con `scripts/configure_admin.py`. Sin este valor, el inicio de sesión queda cerrado. |
+| `RISKENGINE_ALLOWED_ORIGINS` | Orígenes exactos permitidos para operaciones de escritura, separados por comas. En local se permiten los puertos 5173, 8000 y 8001 de localhost y 127.0.0.1. |
+| `RISKENGINE_SECURE_COOKIE` | `true` obliga a usar cookie Secure y prefijo `__Host-`. En Render se activa automáticamente. |
 | `DATABASE_URL` | Local: `sqlite:///./riskengine.db`, relativa al directorio de ejecución del backend. PostgreSQL: URL con driver `postgresql+psycopg`. |
 | `POSTGRES_PASSWORD` | Contraseña generada para la alternativa Compose. No se utiliza en SQLite. |
 
@@ -115,7 +119,7 @@ Las variables ya definidas en el entorno tienen prioridad sobre `.env`. No copie
 
 ## Endpoints principales
 
-La documentación interactiva está en `/docs`. Los recursos de `/api` requieren `Authorization: Bearer <clave>`. `/health` expone solo estado y versión.
+La documentación interactiva está en `/docs`. Los recursos de `/api` requieren la cookie de sesión. `/api/auth/login` valida correo y contraseña; `/api/auth/me` restaura la sesión y `/api/auth/logout` la revoca. Las operaciones de escritura requieren un `Origin` permitido y la cabecera `X-RiskEngine-Request: 1`, que la interfaz envía automáticamente. No se admite la antigua clave Bearer. `/health` expone solo estado y versión.
 
 | Método | Recurso | Función |
 |---|---|---|
@@ -132,7 +136,7 @@ La documentación interactiva está en `/docs`. Los recursos de `/api` requieren
 | GET | `/api/audits/{id}/runs/{run_id}/comparison` | Comparar perfiles sobre las entradas congeladas. |
 | GET | `/api/audits/{id}/runs/{run_id}/export` | Descargar toda la ejecución en JSON, PDF o CSV. |
 
-La exportación admite `?format=json` (predeterminado), `?format=pdf` y `?format=csv`, con la misma clave de acceso. El CSV utiliza UTF-8 con BOM y neutraliza textos importados que una hoja de cálculo podría interpretar como fórmulas.
+La exportación admite `?format=json` (predeterminado), `?format=pdf` y `?format=csv`, con la misma cookie de sesión. El CSV utiliza UTF-8 con BOM y neutraliza textos importados que una hoja de cálculo podría interpretar como fórmulas.
 
 Los hallazgos admiten búsqueda `q` por nombre, CVE, host o puerto y orden `sort` (`original`, `name`, `cvss_desc`, `cvss_asc`, `host`). El orden original conserva la posición de los resultados dentro del XML; la migración recupera esa posición para los reportes ya importados sin modificar snapshots históricos.
 

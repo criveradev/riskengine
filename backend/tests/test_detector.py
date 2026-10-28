@@ -25,7 +25,7 @@ def test_existing_import_detector_is_read_only_and_scoped(client):
     assert client.get(findings_url).json() == before
     other = client.post('/api/audits', json={'name':'Other','scope':'Synthetic'}).json()['id']
     assert client.get(f"/api/audits/{other}/findings/{finding['id']}/detector").status_code == 404
-    assert client.get(f"{findings_url}/{finding['id']}/detector", headers={'Authorization':'Bearer invalid'}).status_code == 401
+    assert client.get(f"{findings_url}/{finding['id']}/detector", headers={'Cookie':''}).status_code == 401
 
 
 def test_absent_metadata_and_missing_result():

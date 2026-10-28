@@ -5,8 +5,22 @@ from riskengine.api import create_app
 from riskengine.config import Settings
 from riskengine.database import make_engine
 from riskengine.models import Base
+from riskengine.auth import hash_password
 
-TOKEN = "test-token-only-not-for-use-outside-tests-1234"
+EMAIL = 'owner@example.test'
+PASSWORD = 'synthetic-password-for-tests'
+PASSWORD_HASH = hash_password(PASSWORD)
+AUTH_HEADERS = {'Origin': 'http://testserver', 'X-RiskEngine-Request': '1'}
+
+
+def test_settings(url='', **kwargs):
+    return Settings(url, EMAIL, PASSWORD_HASH, allowed_origins=('http://testserver',), **kwargs)
+
+
+def sign_in(client):
+    response = client.post('/api/auth/login', json={'email': EMAIL, 'password': PASSWORD})
+    assert response.status_code == 200, response.text
+
 FIXTURE = Path(__file__).parent / "fixtures/synthetic-greenbone.xml"
 
 
@@ -14,8 +28,9 @@ FIXTURE = Path(__file__).parent / "fixtures/synthetic-greenbone.xml"
 def client(tmp_path):
     engine = make_engine(f"sqlite:///{tmp_path / 'test.db'}")
     Base.metadata.create_all(engine)
-    app = create_app(Settings("", TOKEN), engine)
-    with TestClient(app, headers={"Authorization": f"Bearer {TOKEN}"}) as client:
+    app = create_app(test_settings(), engine)
+    with TestClient(app, headers=AUTH_HEADERS) as client:
+        sign_in(client)
         yield client
     engine.dispose()
 

@@ -41,7 +41,7 @@ def test_exports_require_access_and_the_correct_audit(client, imported, format):
     audit, report = imported
     run = client.post(f'/api/audits/{audit}/runs', json=request(report, cvss=1)).json()
     url = f"/api/audits/{audit}/runs/{run['id']}/export?format={format}"
-    assert client.get(url, headers={'Authorization': ''}).status_code == 401
+    assert client.get(url, headers={'Cookie': ''}).status_code == 401
     other = client.post('/api/audits', json={'name': 'Otra', 'scope': 'Prueba sintética'}).json()['id']
     assert client.get(url.replace(audit, other)).status_code == 404
 
