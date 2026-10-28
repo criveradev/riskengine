@@ -7,8 +7,6 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health
-    domains:
-      - riskengine.criveradev.com
     envVars:
       - key: DATABASE_URL
         sync: false

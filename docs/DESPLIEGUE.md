@@ -1,60 +1,82 @@
-# Despliegue de RiskEngine: Render + Neon
+# Despliegue de RiskEngine: Vercel + Render + Neon
 
-Destino propuesto: `https://riskengine.criveradev.com`. El frontend y FastAPI se sirven juntos desde un contenedor Docker en Render; PostgreSQL se aloja en Neon. Vercel no se utiliza en esta configuración.
+## Distribución
+
+| Componente | Servicio |
+| --- | --- |
+| Interfaz React y dominio `riskengine.criveradev.com` | Vercel |
+| API FastAPI | Render: `https://riskengine-s0dr.onrender.com` |
+| PostgreSQL 17 | Neon, región AWS Oregon |
+| DNS | Cloudflare |
+
+Render y Neon están desplegados en Oregon. La interfaz utiliza `/api` en su propio dominio. `frontend/vercel.json` reenvía estas solicitudes a Render mediante rewrites externos; no se necesita abrir CORS. La clave compartida viaja como `Authorization` en cada petición y el backend devuelve `Cache-Control: no-store` para la API.
 
 ## 1. PostgreSQL en Neon
 
-Crea una base dedicada a RiskEngine. En **Connect**, copia la URL de conexión directa (sin pooling) y conserva sus parámetros TLS, incluidos `sslmode=require` y `channel_binding=require` si aparecen. No subas esta URL al repositorio ni la pegues en una incidencia pública.
+Usa una base dedicada a RiskEngine. En **Connect**, selecciona la conexión directa (sin pooling) y conserva sus parámetros TLS, incluidos `sslmode=require` y `channel_binding=require` si aparecen. Guarda la URL como variable secreta `DATABASE_URL` exclusivamente en Render.
 
-Render solicitará la URL como variable secreta `DATABASE_URL`. Se admiten los prefijos `postgresql://`, `postgres://` y `postgresql+psycopg://`; la aplicación y Alembic seleccionan el driver Psycopg 3 instalado. Ejemplo ficticio:
+La aplicación y Alembic admiten los prefijos `postgresql://`, `postgres://` y `postgresql+psycopg://` y utilizan el driver Psycopg 3 instalado. Ejemplo ficticio:
 
 ```text
 postgresql://USUARIO:CLAVE@HOST.neon.tech/BASE?sslmode=require&channel_binding=require
 ```
 
-Mantén los caracteres escapados de la URL que entrega Neon. No copies el comando `psql` completo ni las comillas. Elige la región de Render más cercana a la región de Neon al crear el servicio.
+Mantén los caracteres escapados de la URL original. No copies el comando `psql` completo ni las comillas. No subas esta conexión al repositorio ni a las variables del frontend.
 
-## 2. Aplicación en Render
+## 2. API en Render
 
-1. Conecta el repositorio de GitHub desde **New → Blueprint**.
-2. Render leerá `render.yaml` y usará el Dockerfile de la raíz.
-3. Introduce `DATABASE_URL` con la conexión de la base dedicada de Neon.
-4. El Blueprint genera una clave nueva `RISKENGINE_API_TOKEN`. Consulta su valor en las variables del servicio para iniciar sesión en la aplicación.
-5. Revisa el plan **Free** seleccionado en el archivo y crea el servicio. Este plan puede suspenderse por inactividad; es apropiado para la primera demostración, no garantiza disponibilidad continua.
+El servicio se administra desde `render.yaml`, que usa el Dockerfile de la raíz y el plan Free con una sola instancia. El Blueprint solicita `DATABASE_URL` y genera una clave propia `RISKENGINE_API_TOKEN`. Consulta esta clave en **Environment** para iniciar sesión en RiskEngine; la clave local de `.env` es independiente.
 
-El arranque ejecuta `alembic upgrade head` antes de iniciar Uvicorn. Se utiliza una sola instancia. El proceso escucha en `0.0.0.0` y en el puerto `PORT` que indica Render. `/health` es la ruta de comprobación del servicio. Si la migración falla, el servidor no arranca; revisa los registros antes de reintentar. Para cambios posteriores, conserva un respaldo de Neon antes de aplicar migraciones.
+El arranque ejecuta `alembic upgrade head` antes de iniciar Uvicorn. El proceso escucha en `0.0.0.0` y el puerto `PORT` que indica Render. La ruta de salud es `/health`. Si la migración falla, el servidor no arranca. Conserva un respaldo en Neon antes de aplicar migraciones futuras.
 
-El contenedor compila React automáticamente. No configures `DATABASE_URL` ni la clave de acceso como variables `VITE_*`: solo las necesita el backend. Render exige PostgreSQL; no se permite caer accidentalmente en una base SQLite efímera.
+Render usa su hostname `onrender.com`, sin un dominio personalizado. El plan gratuito puede suspender el servicio por inactividad y provocar una espera al abrir la aplicación o usar la API. La interfaz de Vercel puede cargar mientras la API se está reactivando.
 
-## 3. Dominio en Cloudflare
+## 3. Interfaz en Vercel
 
-El Blueprint propone `riskengine.criveradev.com`; comprueba que aparezca en **Settings → Custom Domains** del servicio de Render. En Cloudflare, agrega este registro:
+Importa el repositorio de GitHub y configura:
+
+| Campo | Valor |
+| --- | --- |
+| Root Directory | `frontend` |
+| Framework Preset | Vite |
+| Install Command | `npm ci` |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+
+El archivo `frontend/vercel.json` contiene las reglas de proxy para `/api/:path*` y `/health`. Si cambia el hostname de Render, actualiza sus destinos. No se necesitan `DATABASE_URL`, `RISKENGINE_API_TOKEN` ni variables `VITE_*` en Vercel.
+
+Añade `riskengine.criveradev.com` en **Settings → Domains** del proyecto de Vercel. Mantén el plan Hobby gratuito dentro de sus condiciones y límites de uso.
+
+## 4. Dominio en Cloudflare
+
+Configura el registro indicado por Vercel:
 
 | Campo | Valor |
 | --- | --- |
 | Tipo | CNAME |
 | Nombre | riskengine |
-| Destino | El hostname real `…onrender.com` que asigne Render, sin `https://` |
-| Proxy | DNS only al verificar y emitir el certificado |
+| Destino | El hostname `…vercel-dns…` mostrado por Vercel |
+| Proxy | DNS only |
 | TTL | Auto |
 
-El destino no se puede conocer antes de crear el servicio. Si ya existe un registro para ese subdominio, revisa su uso antes de sustituirlo. Verifica el dominio en Render y espera a que el certificado sea válido. No es necesario cambiar los registros de `criveradev.com` ni de `www`.
+Si el registro `riskengine` apunta a `riskengine-s0dr.onrender.com`, edítalo para usar el destino indicado por Vercel. No crees dos CNAME con el mismo nombre. El dominio raíz y los demás subdominios conservan su configuración. Espera la validación y la emisión del certificado en Vercel antes de comprobar HTTPS.
 
-## 4. Comprobación del primer despliegue
+## 5. Verificación
 
-1. Comprueba que `/health` responde correctamente en el hostname de Render y en el dominio personalizado.
-2. Inicia sesión con la clave generada en Render.
-3. Crea una auditoría de prueba e importa el XML sintético disponible en la interfaz.
-4. Verifica la consulta de hallazgos, guarda una ejecución y descarga PDF, CSV y JSON.
-5. Reinicia el servicio y comprueba que los datos siguen en Neon.
+1. Comprueba `/health` desde Render y desde el dominio público de Vercel.
+2. Inicia sesión con la clave de Render y comprueba la consulta de auditorías en Neon.
+3. Crea una auditoría identificada como prueba e importa el XML sintético disponible en la interfaz.
+4. Guarda una ejecución y descarga PDF, CSV y JSON.
+5. Comprueba que los datos sobreviven a un reinicio de la aplicación.
 
-El acceso actual utiliza una clave compartida: quien la tenga accede al mismo conjunto de auditorías. Este despliegue inicial está pensado para uso personal con acceso restringido por esa clave. Si se incorporan usuarios independientes, habrá que implementar cuentas, permisos y aislamiento de datos.
+El acceso actual usa una clave compartida: quien la tenga accede al mismo conjunto de auditorías. Si se incorporan usuarios independientes, se necesitan cuentas, permisos y aislamiento de datos.
+
+Verificación local del 28 de octubre de 2026: 71 pruebas de backend, 17 de frontend y compilación de producción aprobadas. En PostgreSQL 16 temporal con UTF-8 se comprobaron migraciones, esquema, importación XML sintética, cálculo, exportaciones y persistencia al recrear la aplicación. El primer despliegue de Render con PostgreSQL 17 en Neon también completó el arranque y el acceso autenticado a la lista de auditorías.
 
 ## Referencias
 
 - [Blueprints de Render](https://render.com/docs/blueprint-spec)
-- [Limitaciones del plan gratuito](https://render.com/docs/free)
-- [Cloudflare DNS para Render](https://render.com/docs/configure-cloudflare-dns)
+- [Limitaciones del plan gratuito de Render](https://render.com/docs/free)
+- [Rewrites de Vercel](https://vercel.com/docs/routing/rewrites)
+- [Dominios personalizados en Vercel](https://vercel.com/docs/domains/set-up-custom-domain)
 - [SQLAlchemy con Neon](https://neon.com/docs/guides/sqlalchemy)
-
-Verificación local del 28 de octubre de 2026: 71 pruebas de backend, 17 de frontend y compilación de producción aprobadas. En PostgreSQL 16 temporal con UTF-8 se comprobaron migraciones, correspondencia del esquema, importación XML sintética, cálculo, exportaciones PDF/CSV/JSON y persistencia al recrear la aplicación. Esto no acredita una conexión real a Neon ni un despliegue en Render; esas comprobaciones se completan con las cuentas y la base elegidas.

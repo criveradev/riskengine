@@ -20,7 +20,7 @@ La fórmula implementada es **una candidata experimental**, no la fórmula acad�
 
 ## Requisitos
 
-Para publicar en Render con PostgreSQL en Neon y el subdominio `riskengine.criveradev.com`, consulta [la guía de despliegue](docs/DESPLIEGUE.md).
+Para publicar la interfaz en Vercel, la API en Render y PostgreSQL en Neon con el subdominio `riskengine.criveradev.com`, consulta [la guía de despliegue](docs/DESPLIEGUE.md).
 
 - Python 3.12 o posterior y Node.js 22.12 o posterior, con npm.
 - Para la alternativa Docker: Docker Engine/Desktop y Compose en funcionamiento.
