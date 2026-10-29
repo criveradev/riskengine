@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
-ROOT_FILES = {'README.md', 'VALIDACION.md', 'Dockerfile', 'compose.yaml', 'render.yaml', '.gitignore', '.dockerignore'}
+ROOT_FILES = {'README.md', 'Dockerfile', 'compose.yaml', 'render.yaml', '.gitignore', '.dockerignore'}
 BLOCKED_DIRECTORIES = {
     '.venv', 'venv', '.git', '.idea', 'node_modules', '.npm-cache', '.qa',
     '__pycache__', '.pytest_cache', '.test-tmp',

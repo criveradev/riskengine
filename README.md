@@ -1,36 +1,84 @@
+<div align="center">
+
 # RiskEngine
 
-Proyecto independiente basado en el código original de VulnRisk. Las referencias de procedencia se conservan en `CONTINUAR_EN_CHAT_NUEVO.md` y `MANIFIESTO_COPIA.json`; este último describe la copia original, no el estado actual.
+**Priorización explicable de vulnerabilidades**
 
-Primer incremento funcional del MVP: importar un reporte XML de Greenbone, conservar sus hallazgos, registrar el contexto del activo y generar una priorización explicable con entradas congeladas.
+Convierte reportes de Greenbone en prioridades trazables, incorporando el contexto de los activos y fuentes de inteligencia de vulnerabilidades.
 
-React y TypeScript en la interfaz; FastAPI en el backend; SQLAlchemy y migraciones Alembic. SQLite permite probar localmente sin servidor de base de datos. La configuración Docker utiliza PostgreSQL. El escáner queda fuera de la aplicación.
+[Aplicación web](https://riskengine-ochre.vercel.app) · [Reportar un problema](https://github.com/criveradev/riskengine/issues) · [Guía de despliegue](docs/DESPLIEGUE.md)
 
-## Estado y alcance
+</div>
 
-- Auditorías, importaciones idempotentes y hallazgos paginados.
-- Hallazgos sin CVE y asociaciones de varios CVE; XML inválido rechazado sin guardados parciales.
-- Contexto de criticidad y exposición por activo; seguimiento abierto/en revisión/resuelto.
-- Consulta explícita de EPSS y KEV con fuentes, fechas y estados de error.
-- Motor puro y versionado, ejecuciones con snapshots y descargas PDF, CSV y JSON.
-- Tema oscuro con fondos grafito, paneles translúcidos y acentos naranja.
-- Acceso personal con correo y contraseña, sesiones revocables y sin registro público.
+## Acerca del proyecto
 
-La fórmula implementada es **una candidata experimental**, no la fórmula académica aprobada. No hay pesos predeterminados: el usuario los indica y confirma su carácter experimental. El adaptador XML se comprobó con fixtures sintéticos; falta validarlo con el archivo real de T07. Este incremento no acredita la finalización de H5–H7 ni una validación académica.
+La severidad técnica es una parte de la decisión de remediación. RiskEngine permite analizar hallazgos junto con la criticidad y la exposición de los activos, consultar EPSS y el catálogo KEV, y conservar la evidencia utilizada en cada ejecución.
 
-## Requisitos
+La aplicación reúne la gestión de auditorías, la importación de reportes, la revisión de referencias CVE y la exportación de resultados en una interfaz con tema oscuro. Cada ejecución guarda sus entradas y configuración para que los resultados puedan revisarse sin depender del estado actual de las fuentes.
 
-Para publicar la interfaz en Vercel, la API en Render y PostgreSQL en Neon con el subdominio `riskengine.criveradev.com`, consulta [la guía de despliegue](docs/DESPLIEGUE.md).
+El motor de priorización es experimental: sus resultados son índices comparativos, no probabilidades calibradas ni una validación de superioridad frente a CVSS. La aplicación analiza reportes existentes; no realiza escaneos ni remediaciones automáticas.
 
-- Python 3.12 o posterior y Node.js 22.12 o posterior, con npm.
-- Para la alternativa Docker: Docker Engine/Desktop y Compose en funcionamiento.
-- Internet para instalar dependencias y consultar fuentes. La importación y los cálculos que no requieren fuentes externas funcionan sin consultar Internet.
+## Funcionalidades
+
+- **Auditorías y hallazgos:** organización por alcance, búsqueda, ordenamiento, paginación y seguimiento abierto, en revisión o resuelto.
+- **Importación de Greenbone:** carga XML con validación y transacciones atómicas. Reimportar el mismo archivo en una auditoría reutiliza la importación existente.
+- **Contexto por activo:** registro de criticidad y exposición para incorporar información del entorno a la priorización.
+- **Inteligencia de vulnerabilidades:** consulta explícita de EPSS y KEV, con fuentes, fechas y estados de error visibles.
+- **Revisión de CVE:** evaluación de aplicabilidad por hallazgo e historial de revisiones.
+- **Motor explicable:** perfiles experimentales, pesos personalizados y comparación de perfiles sobre las mismas entradas congeladas.
+- **Evidencia reproducible:** snapshots por ejecución y exportación en PDF, CSV y JSON.
+- **Acceso personal:** cuenta única con correo y contraseña, sesiones revocables y sin registro público.
+
+## Tecnologías
+
+| Capa | Tecnologías |
+| --- | --- |
+| Interfaz | React 19, TypeScript, Vite |
+| API | Python, FastAPI, Uvicorn |
+| Persistencia | SQLAlchemy 2, Alembic, PostgreSQL / SQLite |
+| Procesamiento | defusedxml, biblioteca CVSS, HTTPX |
+| Informes | ReportLab, exportaciones CSV y JSON |
+| Pruebas | pytest, Vitest, jsdom |
+| Despliegue | Docker Compose, Vercel, Render, Neon |
+
+## Arquitectura
+
+La interfaz consume una API FastAPI. Los servicios coordinan la importación, el enriquecimiento y las ejecuciones; el motor de cálculo se mantiene separado de HTTP, persistencia y fuentes externas.
+
+```text
+frontend/                     Interfaz React y TypeScript
+backend/
+├── riskengine/
+│   ├── api.py                Rutas, validación y control de acceso
+│   ├── domain.py             Motor de priorización y reglas de dominio
+│   ├── parser.py             Adaptador XML de Greenbone
+│   ├── enrichment.py         Adaptadores EPSS y KEV
+│   ├── services.py           Orquestación y snapshots
+│   ├── repository.py         Acceso a datos y transacciones
+│   ├── models.py             Modelos y restricciones de persistencia
+│   └── exports.py            Informes PDF y tablas CSV
+├── migrations/               Migraciones Alembic
+└── tests/                    Pruebas y fixtures sintéticos
+scripts/                      Configuración y empaquetado del código
+docs/                        Documentación técnica y despliegue
+```
+
+SQLite permite ejecutar el proyecto localmente sin un servidor de base de datos. Docker Compose utiliza PostgreSQL. El despliegue documentado separa la interfaz en Vercel, la API en Render y la base de datos en Neon.
 
 ## Instalación local
 
-Desde esta carpeta, crea la configuración y el entorno. `setup.py` genera claves aleatorias en `.env` sin mostrarlas; conserva un archivo existente.
+### Requisitos
+
+- Python 3.12 o posterior.
+- Node.js 22.12 o posterior y npm.
+- Docker y Docker Compose, si se utiliza la alternativa con contenedores.
+- Conexión a Internet para instalar dependencias y consultar EPSS y KEV.
+
+### 1. Preparar el proyecto
 
 ```bash
+git clone https://github.com/criveradev/riskengine.git
+cd riskengine
 python3 scripts/setup.py
 python3 -m venv backend/.venv
 source backend/.venv/bin/activate
@@ -39,112 +87,121 @@ python -m pip install --no-deps -e backend
 python scripts/configure_admin.py
 ```
 
-Si ya existe `backend/.venv`, activa ese entorno y omite su creación. En PyCharm selecciona `backend/.venv/bin/python` como intérprete del proyecto y del módulo del backend.
+En Windows, crea el entorno con `py -3.12 -m venv backend/.venv` y actívalo con `backend\.venv\Scripts\Activate.ps1` en PowerShell.
 
-En Windows utiliza `py -3.12` o tu ejecutable Python y activa con `backend\.venv\Scripts\Activate.ps1` en PowerShell. Después usa `python` para los comandos del entorno.
+`setup.py` prepara el archivo `.env` y el XML sintético de ejemplo; conserva una configuración existente. `configure_admin.py` solicita las credenciales de la cuenta personal. El archivo `.env` contiene configuración privada y está excluido de Git.
 
-Compila la interfaz:
+### 2. Compilar la interfaz
 
 ```bash
 cd frontend
 npm ci
 npm run build
-cd ../backend
+cd ..
+```
+
+### 3. Iniciar la aplicación
+
+Con el entorno Python activado:
+
+```bash
+cd backend
 alembic upgrade head
 uvicorn riskengine.main:app --host 127.0.0.1 --port 8000
 ```
 
-Abre **http://127.0.0.1:8000**. Entra con el correo y la contraseña configurados mediante `scripts/configure_admin.py`. `.env` guarda las credenciales de configuración y debe permanecer privado; la base almacena un hash scrypt con sal, nunca la contraseña. La sesión usa una cookie HttpOnly, caduca a las 8 horas y se revoca con «Salir». No publiques `.env`.
+Abre [http://127.0.0.1:8000](http://127.0.0.1:8000) e inicia sesión con las credenciales configuradas.
 
-Para desarrollar la interfaz sin recompilar, ejecuta `npm run dev` desde `frontend` en otra terminal, manteniendo el backend en el puerto 8000. Abre http://127.0.0.1:5173. Vite reenvía `/api` al backend; no se habilita CORS abierto.
+### Desarrollo de la interfaz
 
-## Ejecutar desde PyCharm
+Para trabajar con recarga automática, mantén la API en el puerto 8000 y ejecuta en otra terminal:
 
-Después de la instalación local, abre la carpeta raíz `riskengine` como proyecto y selecciona `backend/.venv/bin/python` como intérprete en **Settings → Python → Interpreter**. Debe usar Python 3.12 o superior.
+```bash
+cd frontend
+npm run dev
+```
 
-La configuración compartida `.run/RiskEngine.run.xml` aparece como **RiskEngine** en el selector de ejecución. Usa el módulo `uvicorn`, los parámetros `riskengine.main:app --host 127.0.0.1 --port 8001 --reload` y el directorio de trabajo `backend`. Pulsa **Run** y abre **http://127.0.0.1:8001**. La aplicación carga automáticamente el `.env` de la raíz.
+Abre [http://127.0.0.1:5173](http://127.0.0.1:5173). Vite reenvía las solicitudes de `/api` al backend.
 
-Esta configuración sirve la interfaz compilada en `frontend/dist`. Cuando cambies React o los estilos, ejecuta `npm run build` desde `frontend` y recarga el navegador. Para usar Vite en desarrollo con este puerto, ajusta el destino del proxy de `frontend/vite.config.ts` a `http://127.0.0.1:8001`.
+### Docker Compose
 
-## Primer recorrido de comprobación
+Después de preparar `.env` y configurar la cuenta personal:
 
-1. Crea una auditoría con su alcance.
-2. Descarga desde la interfaz el XML **sintético** o utiliza `backend/tests/fixtures/synthetic-greenbone.xml`.
-3. Impórtalo: contiene tres resultados ficticios y dos activos. No es un escaneo ni acredita vulnerabilidades de esos activos.
-4. En «Contexto y fuentes», registra niveles exploratorios de 1 a 5 por activo si necesitas esas entradas. Desconocido no se transforma en cero.
-5. Para probar solamente el recorrido con CVSS, configura pesos `CVSS=1` y los otros cuatro en `0`. Indica explícitamente la antigüedad admisible de fuentes y confirma el carácter experimental. Esto reproduce CVSS reescalado; no demuestra mejora contextual.
-6. Con el fixture, los índices esperados en ese recorrido son 98, 75 y un resultado pendiente por falta de CVSS comparable. Son salidas técnicas de un ejemplo sintético, no resultados de validación.
-7. Prueba después una configuración contextual que tú documentes. Los pesos deben sumar uno. Su elección y las escalas deben cerrarse antes de la evaluación final.
-8. Selecciona una ejecución guardada y utiliza «Descargar PDF», «Descargar CSV» o «Descargar JSON». El PDF contiene un resumen y fichas legibles; el CSV permite revisar la tabla en una hoja de cálculo; el JSON conserva la evidencia completa. Los tres usan los datos guardados de esa ejecución. Un índice pendiente queda vacío en el CSV, nunca se convierte en cero. Cambiar el contexto del activo no reescribe una ejecución anterior.
+```bash
+docker compose up --build
+```
 
-Reimportar el mismo archivo en la misma auditoría reutiliza la importación. Otro archivo se conserva como otra observación: no se deduplica únicamente por CVE. En esta versión, la identidad del activo usa el host informado dentro de la auditoría; cambios de IP y reconciliación de identidades quedan pendientes.
+La aplicación queda disponible en `http://127.0.0.1:8000`. Compose aplica las migraciones al arrancar, mantiene PostgreSQL en un volumen y no publica el puerto de la base de datos.
 
-## Modelo experimental
+## Primer uso
 
-Versión: `weighted-context-experimental-v0.2`.
+1. Crea una auditoría e indica su alcance.
+2. Descarga el XML sintético desde la interfaz e impórtalo para explorar el flujo.
+3. Revisa los hallazgos, el contexto de los activos y la aplicabilidad de las referencias CVE.
+4. Consulta EPSS y KEV cuando necesites esas entradas.
+5. Selecciona un perfil o configura los pesos y la antigüedad admisible de las fuentes.
+6. Confirma el carácter experimental del modelo y guarda una ejecución.
+7. Consulta sus resultados, compara perfiles y descarga los informes.
+
+El archivo de ejemplo contiene datos ficticios y no representa un escaneo real. Modificar el contexto o actualizar las fuentes no reescribe las ejecuciones anteriores.
+
+## Modelo de priorización
+
+La versión `weighted-context-experimental-v0.2` calcula un índice ponderado:
 
 ```text
 índice = 100 × suma(peso × entrada_normalizada)
-CVSS = Base 3.1 / 10
-EPSS = puntuación disponible en [0, 1]
-KEV = 1 si pertenece, 0 si se verificó que no pertenece
-criticidad = (nivel − 1) / 4
-exposición = (nivel − 1) / 4
 ```
 
-CVSS se calcula mediante la biblioteca `cvss` a partir de vectores explícitos `CVSS:3.1/...`. Si hay varios, se conserva el máximo Base 3.1 y su vector. Una severidad numérica sin versión no se presenta como CVSS comparable; permanece como severidad original.
+| Entrada | Tratamiento |
+| --- | --- |
+| CVSS | Base 3.1 calculada desde un vector explícito, dividida por 10 |
+| EPSS | Puntuación disponible entre 0 y 1 |
+| KEV | 1 si pertenece al catálogo; 0 si se verificó que no pertenece |
+| Criticidad | Nivel exploratorio de 1 a 5, normalizado como `(nivel − 1) / 4` |
+| Exposición | Nivel exploratorio de 1 a 5, normalizado como `(nivel − 1) / 4` |
 
-EPSS y KEV requieren revisar la aplicabilidad de todas las referencias CVE de cada hallazgo desde su detalle. Mientras quede una referencia pendiente, ambas entradas permanecen desconocidas. Las revisiones se conservan como historial; el nombre del revisor es declarado, no una identidad autenticada.
+Los pesos deben sumar uno y no se aplican pesos predeterminados sin elección del usuario. Un peso cero desactiva una entrada. Si falta una entrada con peso positivo, el resultado queda pendiente con un motivo; los datos desconocidos no se convierten en cero.
 
-Una vez completada la revisión, solo se consideran los CVE marcados como aplicables. EPSS utiliza el máximo si todos los aplicables tienen un valor admisible; KEV es verdadero si alguno tiene pertenencia conocida, falso si todos tienen no pertenencia conocida y desconocido en los demás casos. Un hallazgo sin CVE aplicables no dispone automáticamente de EPSS o KEV. Estas son reglas de la candidata experimental, pendientes de aprobación académica. Las ejecuciones anteriores conservan sus entradas y su política original.
+EPSS y KEV requieren completar la revisión de aplicabilidad de las referencias CVE. Las evidencias deben cumplir la antigüedad máxima configurada. Cada ejecución conserva la versión del motor, la configuración y las entradas utilizadas.
 
-La interfaz ofrece perfiles experimentales de CVSS solo, cinco pesos iguales y ROC, además de pesos personalizados. La comparación de perfiles reutiliza las entradas congeladas y muestra su cobertura; no acredita superioridad sin una referencia independiente. Los resultados con severidad original negativa quedan pendientes de revisión, cualquiera que sea la configuración de pesos.
+Los perfiles y las escalas necesitan evaluación con una referencia independiente y casos reales. Consulta [la documentación de revisión de CVE](docs/REVISION_CVE.md) para conocer sus reglas de aplicabilidad.
 
-Si falta una entrada con peso positivo, no se calcula el índice: se guarda un motivo. Un peso cero desactiva explícitamente esa entrada. No hay umbrales de niveles de riesgo ni probabilidad calibrada. La fórmula y los pesos deben evaluarse; no se presupone que una combinación lineal sea el modelo definitivo.
-
-Las evidencias deben tener fecha admisible según la antigüedad indicada por el usuario. Un error de actualización no se convierte en cero ni produce una sustitución silenciosa por datos antiguos. Cada ejecución conserva copia de lo utilizado.
-
-## Variables de entorno
+## Configuración
 
 | Variable | Uso |
-|---|---|
-| `RISKENGINE_ADMIN_EMAIL` | Única cuenta autorizada. |
-| `RISKENGINE_ADMIN_PASSWORD` | Contraseña de la cuenta personal, guardada solo en el entorno privado. La aplicación genera y conserva un hash scrypt con sal en la base. Sin credenciales, el acceso queda cerrado. |
-| `RISKENGINE_ALLOWED_ORIGINS` | Orígenes exactos permitidos para operaciones de escritura, separados por comas. En local se permiten los puertos 5173, 8000 y 8001 de localhost y 127.0.0.1. |
-| `RISKENGINE_SECURE_COOKIE` | `true` obliga a usar cookie Secure y prefijo `__Host-`. En Render se activa automáticamente. |
-| `DATABASE_URL` | Local: `sqlite:///./riskengine.db`, relativa al directorio de ejecución del backend. PostgreSQL: URL con driver `postgresql+psycopg`. |
-| `POSTGRES_PASSWORD` | Contraseña generada para la alternativa Compose. No se utiliza en SQLite. |
+| --- | --- |
+| `DATABASE_URL` | Conexión SQLAlchemy. Por defecto, SQLite local; PostgreSQL utiliza Psycopg 3. |
+| `RISKENGINE_ADMIN_EMAIL` | Correo de la única cuenta autorizada. |
+| `RISKENGINE_ADMIN_PASSWORD` | Contraseña de configuración; la base de datos almacena un hash scrypt con sal. |
+| `RISKENGINE_ALLOWED_ORIGINS` | Orígenes exactos permitidos para operaciones de escritura, separados por comas. |
+| `RISKENGINE_SECURE_COOKIE` | Activa cookies Secure y el prefijo `__Host-`; se activa automáticamente en Render. |
+| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL para Docker Compose. |
 
-Las variables ya definidas en el entorno tienen prioridad sobre `.env`. No copies las claves a la configuración pública del frontend ni al código.
+Las variables definidas en el entorno tienen prioridad sobre `.env`. La configuración privada pertenece al backend y no debe incluirse en variables públicas del frontend. Las sesiones caducan a las ocho horas y se revocan al cerrar sesión.
 
-## Endpoints principales
+## API
 
-La documentación interactiva está en `/docs`. Los recursos de `/api` requieren la cookie de sesión. `/api/auth/login` valida correo y contraseña; `/api/auth/me` restaura la sesión y `/api/auth/logout` la revoca. Las operaciones de escritura requieren un `Origin` permitido y la cabecera `X-RiskEngine-Request: 1`, que la interfaz envía automáticamente. No se admite la antigua clave Bearer. `/health` expone solo estado y versión.
+La documentación interactiva de FastAPI está disponible en `/docs`. Los recursos de `/api` requieren una sesión, salvo el inicio de sesión. Las operaciones de escritura también requieren un origen permitido y la cabecera `X-RiskEngine-Request: 1`.
 
-| Método | Recurso | Función |
-|---|---|---|
-| GET / POST | `/api/audits` | Listar o crear auditorías. |
-| GET / POST | `/api/audits/{id}/imports` | Listar o cargar XML multipart con campo `file`. |
-| GET | `/api/audits/{id}/findings` | Listar; filtros `import_id`, `limit` y `offset`. |
-| GET | `/api/audits/{id}/assets` | Listar activos. |
-| PATCH | `/api/audits/{id}/assets/{asset_id}` | Actualizar contexto. |
-| PATCH | `/api/audits/{id}/findings/{finding_id}` | Actualizar seguimiento. |
-| POST | `/api/audits/{id}/findings/{finding_id}/cves/{cve}/reviews` | Registrar revisión de aplicabilidad CVE. |
-| POST | `/api/audits/{id}/enrichments` | Consultar EPSS y KEV; máximo 500 CVE únicos por auditoría. |
-| GET / POST | `/api/audits/{id}/runs` | Listar o ejecutar priorización de una importación. |
-| GET | `/api/audits/{id}/runs/{run_id}/results` | Consultar resultados paginados y configuración. |
-| GET | `/api/audits/{id}/runs/{run_id}/comparison` | Comparar perfiles sobre las entradas congeladas. |
-| GET | `/api/audits/{id}/runs/{run_id}/export` | Descargar toda la ejecución en JSON, PDF o CSV. |
+| Recurso | Operaciones principales |
+| --- | --- |
+| `/api/auth/login`, `/api/auth/me`, `/api/auth/logout` | Inicio, consulta y cierre de sesión |
+| `/api/audits` | Consulta y creación de auditorías |
+| `/api/audits/{id}/imports` | Importación de reportes XML |
+| `/api/audits/{id}/findings` | Consulta de hallazgos y seguimiento por identificador |
+| `/api/audits/{id}/assets` | Consulta de activos y actualización de contexto por identificador |
+| `/api/audits/{id}/findings/{finding_id}/cves/{cve}/reviews` | Registro de revisión de aplicabilidad |
+| `/api/audits/{id}/enrichments` | Consulta de EPSS y KEV |
+| `/api/audits/{id}/runs` | Creación y consulta de ejecuciones |
+| `/api/audits/{id}/runs/{run_id}/results` | Resultados y configuración |
+| `/api/audits/{id}/runs/{run_id}/comparison` | Comparación de perfiles |
+| `/api/audits/{id}/runs/{run_id}/export` | Exportación con `format=pdf`, `csv` o `json` |
+| `/health` | Estado y versión del servicio |
 
-La exportación admite `?format=json` (predeterminado), `?format=pdf` y `?format=csv`, con la misma cookie de sesión. El CSV utiliza UTF-8 con BOM y neutraliza textos importados que una hoja de cálculo podría interpretar como fórmulas.
+## Pruebas
 
-Los hallazgos admiten búsqueda `q` por nombre, CVE, host o puerto y orden `sort` (`original`, `name`, `cvss_desc`, `cvss_asc`, `host`). El orden original conserva la posición de los resultados dentro del XML; la migración recupera esa posición para los reportes ya importados sin modificar snapshots históricos.
-
-La carga devuelve 201 al crear y 200 al reutilizar. Errores de entrada: 422; acceso: 401; recurso ajeno a la auditoría: 404; límite: 413; conflicto: 409. Los errores tienen un objeto `error` con `code` y `message`; las respuestas API incluyen identificador de solicitud.
-
-## Pruebas y comandos
-
-Desde `backend` con el entorno activado:
+Desde `backend`, con el entorno Python activado:
 
 ```bash
 python -m pytest -q
@@ -158,63 +215,20 @@ npm test
 npm run build
 ```
 
-Las pruebas de interfaz cubren cambios de reporte y auditoría, fallos de carga, botones de exportación y descargas binarias. Las pruebas del backend cubren formatos, autorización, resultados congelados y protección de celdas CSV. El empaquetador se prueba con archivos sintéticos para excluir entornos, datos privados y enlaces simbólicos.
+Las suites cubren importaciones, validación XML, autenticación, datos ausentes, snapshots, exportaciones y flujos de interfaz. Utilizan fixtures sintéticos y respuestas controladas de las fuentes externas; no realizan escaneos ni consultas reales a EPSS o KEV. `alembic check` comprueba que el esquema configurado coincide con los modelos.
 
-Las pruebas no escanean redes ni consultan EPSS/KEV: las respuestas externas se controlan para comprobar fallos y datos ausentes de forma determinista. La migración inicial se prueba contra SQLite y se comprueba su correspondencia con el modelo. Revisar `VALIDACION.md` para el resultado real de las verificaciones de esta entrega.
+## Despliegue
 
-## Estructura
+La [guía de despliegue](docs/DESPLIEGUE.md) describe la configuración de Vercel, Render y Neon, las variables del backend, el proxy de la API y el dominio personalizado. El servicio de API en el plan gratuito puede requerir tiempo para reactivarse tras un período de inactividad.
 
-```text
-backend/riskengine/domain.py      Motor puro y errores de aplicación
-backend/riskengine/parser.py      Adaptador XML seguro
-backend/riskengine/enrichment.py  Adaptadores EPSS y KEV
-backend/riskengine/services.py    Orquestación y snapshots
-backend/riskengine/repository.py  Acceso a datos y transacciones
-backend/riskengine/models.py      Persistencia y restricciones
-backend/riskengine/api.py         Rutas, validación y control de acceso
-backend/riskengine/exports.py     Informes PDF y tablas CSV de ejecuciones guardadas
-backend/migrations/            Migraciones Alembic versionadas
-backend/tests/                 Pruebas y fixtures sintéticos
-frontend/src/                  Interfaz React y TypeScript
-scripts/setup.py               Configuración local y ejemplo descargable
-scripts/package_source.py      ZIP de entrega sin entornos ni datos privados
-```
+## Alcance actual
 
-## Docker y PostgreSQL
+- Acceso personal con una sola cuenta. No hay registro público, roles ni aislamiento entre organizaciones.
+- Importaciones de hasta 10 MiB y 10.000 resultados. El adaptador XML no admite DTD, entidades externas ni variantes con namespaces.
+- La identidad de un activo corresponde al host informado dentro de cada auditoría; la reconciliación de cambios de IP queda pendiente.
+- Enriquecimiento síncrono, sin colas ni reintentos automáticos. NVD no está integrado.
+- El modelo experimental y la compatibilidad con reportes reales requieren evaluación adicional.
 
-Después de ejecutar `python scripts/setup.py`, puedes usar:
+## Autor
 
-```bash
-docker compose up --build
-```
-
-Compose publica la aplicación únicamente en `127.0.0.1:8000`, no publica PostgreSQL y conserva la base en un volumen. El proceso aplica migraciones antes de iniciar un único trabajador. Entra con la misma clave de `.env`.
-
-**Esta alternativa requiere comprobación en un Docker Engine activo.** No se ha verificado una ejecución real de PostgreSQL en el entorno de esta entrega. La opción local con SQLite permite verificar el incremento mientras se prepara ese entorno.
-
-## Límites y siguiente incremento
-
-- Acceso personal con una única cuenta y sesiones revocables. No hay registro público, roles ni aislamiento entre organizaciones; el despliegue está pensado para uso personal.
-- Límite de archivo: 10 MiB; 10.000 resultados, 100 CVE por resultado, 10.000 CVE únicos, profundidad 48 y 100.000 nodos. El parser no admite DTD, entidades externas ni variantes XML con namespaces en esta versión.
-- Las escrituras de una importación y de una ejecución son atómicas. Los fallos se registran como eventos operativos; no hay todavía una tabla persistente de intentos fallidos o trabajos en curso.
-- El límite de solicitudes es local al proceso, 120 por minuto por dirección. No es un control distribuido. El enriquecimiento es síncrono, sin colas ni reintentos automáticos. Las fuentes tienen destinos fijos y respuestas acotadas.
-- Pendientes: XML real T07, pruebas sobre PostgreSQL, identidad del activo más allá de su host, modelo académico v1, referencia independiente y cálculo de métricas T04–T05 con casos reales. NVD no está integrado.
-- No hay escaneo, explotación, remediación automática ni resultados de validación académica. La evaluación seguirá separando piloto y conjunto final.
-- El despliegue remoto, cuentas individuales, TLS y endurecimiento operativo corresponden a un incremento posterior con requisitos concretos.
-
-### 👨🏻‍💻 Developed by
-
-<p align="center">
-  <picture>
-    <source
-      media="(prefers-color-scheme: dark)"
-      srcset="https://res.cloudinary.com/docscluster/image/upload/v1782698757/logo-dark_qddsa3.svg">
-    <source
-      media="(prefers-color-scheme: light)"
-      srcset="https://res.cloudinary.com/docscluster/image/upload/v1782698757/logo-light_wilpp4.svg">
-    <img
-      alt="criveradev"
-      src="https://res.cloudinary.com/docscluster/image/upload/v1782698757/logo-light_wilpp4.svg"
-      width="200">
-  </picture>
-</p>
+Desarrollado por [Claudio Rivera — criveradev](https://criveradev.com). RiskEngine es un proyecto independiente basado en el código original de VulnRisk.
