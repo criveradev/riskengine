@@ -229,10 +229,6 @@ La [guía de despliegue](docs/DESPLIEGUE.md) describe la configuración de Verce
 - Enriquecimiento síncrono, sin colas ni reintentos automáticos. NVD no está integrado.
 - El modelo experimental y la compatibilidad con reportes reales requieren evaluación adicional.
 
-## Autor
-
-Desarrollado por [Claudio Rivera — criveradev](https://criveradev.com). RiskEngine es un proyecto independiente basado en el código original de VulnRisk.
-
 ### 👨🏻‍💻 Developed by
 
 <p align="center">
