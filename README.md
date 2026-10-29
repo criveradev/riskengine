@@ -232,3 +232,20 @@ La [guía de despliegue](docs/DESPLIEGUE.md) describe la configuración de Verce
 ## Autor
 
 Desarrollado por [Claudio Rivera — criveradev](https://criveradev.com). RiskEngine es un proyecto independiente basado en el código original de VulnRisk.
+
+### 👨🏻‍💻 Developed by
+
+<p align="center">
+  <picture>
+    <source
+      media="(prefers-color-scheme: dark)"
+      srcset="https://res.cloudinary.com/docscluster/image/upload/v1782698757/logo-dark_qddsa3.svg">
+    <source
+      media="(prefers-color-scheme: light)"
+      srcset="https://res.cloudinary.com/docscluster/image/upload/v1782698757/logo-light_wilpp4.svg">
+    <img
+      alt="criveradev"
+      src="https://res.cloudinary.com/docscluster/image/upload/v1782698757/logo-light_wilpp4.svg"
+      width="200">
+  </picture>
+</p>
